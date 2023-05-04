@@ -31,13 +31,15 @@
             this.buttonConsulta1 = new System.Windows.Forms.Button();
             this.buttonConsulta2 = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
+            this.textBoxJugador = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // buttonConsulta1
             // 
             this.buttonConsulta1.Location = new System.Drawing.Point(35, 59);
+            this.buttonConsulta1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonConsulta1.Name = "buttonConsulta1";
-            this.buttonConsulta1.Size = new System.Drawing.Size(221, 50);
+            this.buttonConsulta1.Size = new System.Drawing.Size(220, 50);
             this.buttonConsulta1.TabIndex = 9;
             this.buttonConsulta1.Text = "Dime cuantos usuarios hay";
             this.buttonConsulta1.UseVisualStyleBackColor = true;
@@ -46,8 +48,9 @@
             // buttonConsulta2
             // 
             this.buttonConsulta2.Location = new System.Drawing.Point(35, 165);
+            this.buttonConsulta2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonConsulta2.Name = "buttonConsulta2";
-            this.buttonConsulta2.Size = new System.Drawing.Size(221, 50);
+            this.buttonConsulta2.Size = new System.Drawing.Size(220, 50);
             this.buttonConsulta2.TabIndex = 10;
             this.buttonConsulta2.Text = "Dime si este usuario existe?";
             this.buttonConsulta2.UseVisualStyleBackColor = true;
@@ -62,14 +65,23 @@
             this.label1.TabIndex = 11;
             this.label1.Text = "label1";
             // 
+            // textBoxJugador
+            // 
+            this.textBoxJugador.Location = new System.Drawing.Point(295, 177);
+            this.textBoxJugador.Name = "textBoxJugador";
+            this.textBoxJugador.Size = new System.Drawing.Size(175, 26);
+            this.textBoxJugador.TabIndex = 12;
+            // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(630, 541);
+            this.Controls.Add(this.textBoxJugador);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.buttonConsulta2);
             this.Controls.Add(this.buttonConsulta1);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "Form2";
             this.Text = "Form2";
             this.Load += new System.EventHandler(this.Form2_Load);
@@ -83,5 +95,6 @@
         private System.Windows.Forms.Button buttonConsulta1;
         private System.Windows.Forms.Button buttonConsulta2;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBoxJugador;
     }
 }

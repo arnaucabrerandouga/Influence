@@ -8,10 +8,16 @@
 #include <mysql/mysql.h>
 #include <pthread.h>
 
+int contador;
+
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int i;
+int sockets[100];
 
 typedef struct{
 	char Nombre[20];
+	int socket;
 }Tuser;
 
 typedef struct{
@@ -215,7 +221,7 @@ int consulta_1()
 	
 	resultado = mysql_store_result(conexion); //Esta linea almacena los resultados de la consulta SQL en el objeto resultado.
 	fila = mysql_fetch_row(resultado); //A continuacion, se llama a la función mysql_fetch_row() para obtener la siguiente fila de resultados. Esta función devuelve un puntero a una estructura MYSQL_ROW que contiene los datos de una fila de resultados. Como la consulta devuelve una sola fila con un unico valor (el número de usuarios con el nombre y contraseña proporcionados), no es necesario iterar sobre las filas de resultados.
-	int usuarios= atoi(fila[0]); //Entonces, como esta consulta devuelve una única fila y una única columna con el número de usuarios que cumplen la condición, se obtiene el valor de esta columna usando fila[0] y se convierte a un valor entero usando atoi(). Si el valor de existe_usuario es 0, significa que no existe un usuario con el nombre y contraseña proporcionados. Si el valor de existe_usuario es 1, significa que sí existe un usuario con el nombre y contraseña proporcionados. Este valor se devuelve al final de la función iniciar_sesion().
+	int usuarios= atoi(fila[0]); //Entonces, como esta consulta devuelve una unica fila y una unica columna con el número de usuarios que cumplen la condición, se obtiene el valor de esta columna usando fila[0] y se convierte a un valor entero usando atoi(). Si el valor de existe_usuario es 0, significa que no existe un usuario con el nombre y contraseña proporcionados. Si el valor de existe_usuario es 1, significa que sí existe un usuario con el nombre y contraseña proporcionados. Este valor se devuelve al final de la función iniciar_sesion().
 	
 	mysql_free_result(resultado);
 	mysql_close(conexion);
@@ -272,135 +278,187 @@ void *AtenderCliente (void *socket)
 	char respuesta[512];
 	
 	int finConexion = 0;
+	int notificacion7;  //avisa si debo enviar una notificacion o no
 	
 	while (finConexion==0)
 	{
-				
-		
+		notificacion7 = 0;
 		
 		// Ahora recibimos el mensaje, que dejamos en buff
 		ret=read(sock_conn,peticion, sizeof(peticion));
+		if (ret <= 0) {
+			// si hubo un error en la lectura, cerrar la conexion
+			close(sock_conn);
+			printf ("error al leer el mensaje");
+			break;
+		}
 		printf ("Recibido\n");
-		
-		// Tenemos que a?adirle la marca de fin de string 
+		printf ("%d",sock_conn);
+		// Tenemos que a�adirle la marca de fin de string 
 		// para que no escriba lo que hay despues en el buffer
 		peticion[ret]='\0';
 		
 		printf ("Peticion: %s\n",peticion);
 		
-		
 		char *p = strtok(peticion, "/");
 		int codigo = atoi (p);
-			
+		int numForm;
+		printf ("Codigo: %d\n",codigo);	
 		if (codigo == 0)
 			finConexion = 1;
 		
 		else if (codigo== 1 || codigo == 2)
 		{
+			//Partimos para obtener nombre y contrase�a
 			p = strtok (NULL, "/");
 			char usuario[20];
 			strcpy (usuario, p);
-			
 			p = strtok (NULL, "/");
 			char contrasenya[20];
 			strcpy (contrasenya, p);
 			
-			if (codigo == 1)
+			if (codigo == 1) //iniciar sesion
 			{
 				int inicioSesion = iniciar_sesion(usuario,contrasenya); // funcion que devuelve 1 se todo va bien 0 si hay error 2 si el usuario y la contrase�a no coinciden
-				//int inicioSesion = 1;
 				if (inicioSesion == 2) // El usuario y la contraae�a coinciden
-					sprintf (respuesta, "BIEN");
-				
+					sprintf (respuesta, "1/BIEN");
 				else if (inicioSesion == 1) // El usuario y la contrase�a no coinciden
-					sprintf(respuesta, "INCORRECTO");
+					sprintf(respuesta, "1/INCORRECTO");
 				else // Hay un error
-					sprintf(respuesta, "ERROR");
+					sprintf(respuesta, "1/ERROR");
 			}
-			else if (codigo == 2)
+			else if (codigo == 2) //registrar a un usuario
 			{
 				int registro = registrarse(usuario,contrasenya); // funcion que devuelve 1 se todo va bien 0 si hay error 2 si el usuario ya existe
 				if (registro == 2) // Se ha registrado
-					sprintf (respuesta, "BIEN");
-				
+					sprintf (respuesta, "2/BIEN");
 				else if (registro == 1) // El usuario ya existe
-					sprintf(respuesta, "EXISTE");
+					sprintf(respuesta, "2/EXISTE");
 				else// Error
-					sprintf(respuesta, "ERROR");
+					sprintf(respuesta, "2/ERROR");
 			}
-			
 		}
-		
-		if (codigo == 3)
+		else if (codigo == 3) //consulta 1
 		{
+			printf("empezamos peticion3");
+			p = strtok (NULL, "/");
+			int numForm = atoi (p);
 			int consulta1 = consulta_1();
-			sprintf(respuesta, "%d", consulta1);
+			sprintf(respuesta, "3/%d/%d", numForm, consulta1);
 			printf("%d",consulta1);
 			
 		}
-		if (codigo == 4)
+		else if (codigo == 4) //consulta 2
 		{
+			p = strtok (NULL, "/");
+			int numForm = atoi (p);
 			p = strtok (NULL, "/");
 			char usuario[20];
 			strcpy (usuario, p);
-			int consulta2 = consulta_2(usuario);
+			int consulta2 = consulta_2(usuario); //devuelve 1 si el usuario existe, 0 si no existe
 			
 			if (consulta2 == 1)
-				sprintf(respuesta, "SI");
+				sprintf(respuesta, "4/%d/SI", numForm);
 			if (consulta2 == 0)
-				sprintf(respuesta, "NO");
+				sprintf(respuesta, "4/%d/NO", numForm);
 			
 		}
-		
-		//Quien se ha conectado?
-		if (codigo == 5)
+		else if (codigo == 5) //un usuario se ha conectado
 		{
-			pthread_mutex_lock( &mutex );
+			pthread_mutex_lock( &mutex );//no me interrumpas ahora
 			int cont = 0;
 			int encontrado = 0;
 			p = strtok (NULL, "/");
 			while (cont < 50 && encontrado == 0){
-				if (strcmp(conectados.Conectados[cont].Nombre,"NULL")){
-					strcpy (conectados.Conectados[cont].Nombre, p);
+				if (strlen(conectados.Conectados[cont].Nombre)==0) //busca una posicion vacia
+				{
+					printf("%s esta en la posicion donde escribire\n", conectados.Conectados[cont].Nombre);
+					strcpy (conectados.Conectados[cont].Nombre, p); //a�ade una persona a la lista de conectados
+					conectados.Conectados[cont].socket = sock_conn; //asginar socket
+					conectados.num++; //aumenta en 1 el numero de personas conectadas
 					encontrado = 1;
+					printf("%s se ha conectado\n", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
 				}
 				cont=cont+1;
 			}
-			pthread_mutex_unlock( &mutex );
-			//no
-			char usuario[20];
-			strcpy (usuario, p);
-			sprintf(respuesta, "%s", usuario);			
-	
+			pthread_mutex_unlock( &mutex );//ya puedes interrumpirme
 		}
-		//Quien se ha desconectado?
-		if (codigo == 6)
+		else if (codigo == 6) //un usuario se ha desconectado
 		{
-			pthread_mutex_lock( &mutex );
+			pthread_mutex_lock( &mutex );//no me interrumpas ahora
 			int cont = 0;
 			int encontrado = 0;
 			p = strtok (NULL, "/");
 			while (cont < 50 && encontrado == 0){
-				if (strcmp(p,conectados.Conectados[cont].Nombre)==0){
-					strcpy(conectados.Conectados[cont].Nombre, "NULL");
+				if (strcmp(p,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
+				{
+					conectados.Conectados[cont].Nombre[0] = '\0';  //elimino al jugador de la lista de conectados
+					conectados.Conectados[cont].socket = 0;  //elimino al socket de este jugador
+					conectados.num--; //reduzco en 1 el numero de personas conectadas
+					encontrado = 1;
+					printf("%s se ha desconectado", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
+					
+				}
+				cont=cont+1;
+				
+			}
+			pthread_mutex_unlock( &mutex );//ya puedes interrumpirme
+		}
+		else if (codigo == 8)
+		{
+			int cont = 0;
+			int encontrado = 0;
+			p = strtok (NULL, "/");
+			while (cont < conectados.num && encontrado == 0){
+				if (strcmp(p,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
+				{
+					// si lo encuenor envio mensa si no tambiwn
 					encontrado = 1;
 				}
 				cont=cont+1;
 				
 			}
-			pthread_mutex_unlock( &mutex );
+			if (encontrado == 1)
+			{
+				sprintf(respuesta, "8/SI");
+			}
+			else
+			{
+				sprintf(respuesta, "8/NO");
+			}
+			
 			
 		}
+		if((codigo == 1)||(codigo == 2)||(codigo == 3)||(codigo == 4)||(codigo == 8))
+		{
+			printf("%s\n",respuesta);
+			//Enviamos la respuesta
+			write (sock_conn,respuesta, strlen(respuesta));
+		}
 		
-		
-	
-		printf("%s",respuesta);
-		write (sock_conn,respuesta, strlen(respuesta));
-		
-		// Se acabo el servicio para este cliente
-		close(sock_conn); 
-		break;
+		if((codigo == 5)||(codigo == 6))
+		{
+
+			// notificar a todos los clientes conectados
+			char notificacion[20];
+			sprintf(notificacion, "7/%d", conectados.num);
+			int cont7 = 0;
+			while (cont7 < conectados.num)
+			{
+				sprintf(notificacion, "%s/%s",notificacion,conectados.Conectados[cont7].Nombre);
+				cont7++;
+			}
+			int j;
+			for(j=0; j<conectados.num;j++)
+			{
+				printf("Notificacion; %s\n",notificacion);
+				printf ("%d",conectados.Conectados[j].socket);
+				write (conectados.Conectados[j].socket,notificacion, strlen(notificacion));
+			}
+		}
 	}
+	// Se acabo el servicio para este cliente
+	close(sock_conn);	
 }
 ///--------------------------------------------------------------------------------
 
@@ -427,15 +485,14 @@ int main (int argc, char *argv[]) {
 	//htonl formatea el numero que recibe al formato necesario
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
 	// escucharemos en el port x
-	serv_adr.sin_port = htons(9070);
+	serv_adr.sin_port = htons(9050);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf ("Error al bind");
 	//La cola de peticiones pendientes
 	if (listen(sock_listen, 3) < 0)
 		printf("Error en el Listen");
 	
-	int i;
-	int sockets[100];
+
 	pthread_t thread;
 	i=0;
 
