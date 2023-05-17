@@ -25,7 +25,19 @@ typedef struct{
 	int num;
 }Tconectados;
 
+typedef struct{
+	Tuser Jugadores[4];
+	int numJugadores;
+}Tpartida;
+
+typedef struct{
+	Tpartida partidas[50];
+	int num;
+}Tpartidas;
+
 Tconectados conectados;
+Tpartidas partidas;
+
 
 
 int iniciar_sesion(char* nombre, char* contrasena) { //La funcion "iniciar_sesion" toma dos parametros: "nombre" y "contrasena" que son los datos de inicio de sesiÃ³n del usuario que se van a verificar en la base de datos. Devuelve un valor entero que indica si el usuario existe en la base de datos o no.
@@ -280,6 +292,9 @@ void *AtenderCliente (void *socket)
 	int finConexion = 0;
 	int notificacion7;  //avisa si debo enviar una notificacion o no
 	
+	int mensajes10Recividos = 0;
+	int mensajes10SI = 0;
+	
 	while (finConexion==0)
 	{
 		notificacion7 = 0;
@@ -293,7 +308,7 @@ void *AtenderCliente (void *socket)
 			break;
 		}
 		printf ("Recibido\n");
-		printf ("%d",sock_conn);
+		//printf ("%d",sock_conn);
 		// Tenemos que añadirle la marca de fin de string 
 		// para que no escriba lo que hay despues en el buffer
 		peticion[ret]='\0';
@@ -303,7 +318,6 @@ void *AtenderCliente (void *socket)
 		char *p = strtok(peticion, "/");
 		int codigo = atoi (p);
 		int numForm;
-		printf ("Codigo: %d\n",codigo);	
 		if (codigo == 0)
 			finConexion = 1;
 		
@@ -372,7 +386,6 @@ void *AtenderCliente (void *socket)
 			while (cont < 50 && encontrado == 0){
 				if (strlen(conectados.Conectados[cont].Nombre)==0) //busca una posicion vacia
 				{
-					printf("%s esta en la posicion donde escribire\n", conectados.Conectados[cont].Nombre);
 					strcpy (conectados.Conectados[cont].Nombre, p); //añade una persona a la lista de conectados
 					conectados.Conectados[cont].socket = sock_conn; //asginar socket
 					conectados.num++; //aumenta en 1 el numero de personas conectadas
@@ -396,7 +409,7 @@ void *AtenderCliente (void *socket)
 					conectados.Conectados[cont].socket = 0;  //elimino al socket de este jugador
 					conectados.num--; //reduzco en 1 el numero de personas conectadas
 					encontrado = 1;
-					printf("%s se ha desconectado", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
+					printf("%s se ha desconectado\n", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
 					
 				}
 				cont=cont+1;
@@ -426,12 +439,119 @@ void *AtenderCliente (void *socket)
 			{
 				sprintf(respuesta, "8/NO");
 			}
-			
-			
 		}
+		else if (codigo == 9) //mensaje para invitar a jugar a otros jugadores
+		{
+			//recivo mensaje 9/anfitrion/num otros jugadores/jugador1/jugador2/jugador3
+			//de la manera que esta echo petara a las 50 partidas pero demomento solo puede con 1 partida
+			char notificacion[20];
+			p = strtok (NULL, "/");
+			strcpy(partidas.partidas[partidas.num].Jugadores[0].Nombre,p); //el anfitrion siempre estara en la posicion 0
+			p = strtok (NULL, "/");
+			partidas.partidas[partidas.num].numJugadores = atoi (p);
+			partidas.partidas[partidas.num].numJugadores ++;
+			sprintf(notificacion, "9/%d", partidas.num);
+			int i = 1;
+			while (i < partidas.partidas[partidas.num].numJugadores)
+			{
+				p = strtok (NULL, "/");
+				strcpy(partidas.partidas[partidas.num].Jugadores[i].Nombre,p);	
+				int cont = 0;
+				int encontrado = 0;
+				while (cont < 50 && encontrado == 0)
+				{
+					if (strcmp(partidas.partidas[partidas.num].Jugadores[i].Nombre,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
+					{
+						//podria aprovechar y asginarle aqui el socket al jugador para ahorrarme trabajo mas adelante
+						write (conectados.Conectados[cont].socket,notificacion, strlen(notificacion));
+						//strcpy(partidas.partidas[partidas.num].Jugadores[i].socket, conectados.Conectados[cont].socket);
+						encontrado = 1;
+						printf("Notificacion 9 enviada a %s\n", conectados.Conectados[cont].Nombre); // print para comprovar que se envia bien
+					}
+					cont=cont+1;
+				}
+				i ++;
+			}
+			partidas.num ++;
+		}
+		else if (codigo == 10) //recivo un mensaje 10/partidas.num/SI o 10/partidas.num/NO de todos los jugadores invitados
+		{
+			// tengo una variable mensajes recividos que aumenta cuando recivo un mensaje
+			// una variable mensajes si recividos que aumenta cuando recibo un si
+			// si cuando recibo todos los mensajes que devo todos son si envio notificacion si
+			// si hay algun no enviare un no
+			char notificacion[20];
+			mensajes10Recividos ++;
+			p = strtok (NULL, "/");
+			int miPartida = atoi (p);
+			p = strtok (NULL, "/");
+			char respuesta10[2];
+			strcpy(respuesta10, p);
+			printf("%s\n", respuesta10);
+			if (strcmp(respuesta10, "SI")==0)
+			{
+				mensajes10SI ++;
+			}
+			if (mensajes10Recividos == partidas.partidas[miPartida].numJugadores - 1)
+			{
+				if (mensajes10Recividos == mensajes10SI)
+					sprintf(notificacion, "10/%d/SI", miPartida);
+				else
+					sprintf(notificacion, "10/%d/NO", miPartida);
+				int i = 0;
+				while (i < mensajes10Recividos + 1)
+				{
+					//write (partidas.partidas[partidas.num].Jugadores[i].socket,notificacion, strlen(notificacion));
+					//printf("Notificacion %s enviada a %s\n",notificacion, partidas.partidas[partidas.num].Jugadores[i].Nombre);
+					int n = 0;
+					int encontrado = 0;
+					while (n < 50 && encontrado == 0)
+					{
+						if (strcmp(partidas.partidas[miPartida].Jugadores[i].Nombre,conectados.Conectados[n].Nombre)==0) // busco al jugador en la lista de conectados
+						{
+							write (conectados.Conectados[n].socket,notificacion, strlen(notificacion));
+							printf("Notificacion %s enviada a %s\n",notificacion, conectados.Conectados[n].Nombre); // print para comprovar que se envia bien
+							encontrado = 1;
+						}
+						n ++;
+					}
+					i ++;
+				}
+			}		
+		}
+		else if (codigo == 11) //chat: recibo mensaje 11/numPartida/Jugador que escrive/mensaje
+		{
+			printf("empieza 11\n");
+			char notificacion[512];
+			p = strtok (NULL, "/");
+			int miPartida = atoi (p);
+			p = strtok (NULL, "/");
+			char escritor[20];
+			strcpy (escritor,p);
+			p = strtok (NULL, "/");
+			sprintf(notificacion, "11/%d/%s/%s", miPartida, escritor, p);
+			int i = 0;
+			while (i < partidas.partidas[miPartida].numJugadores)
+			{
+				int n = 0;
+				int encontrado = 0;
+				while (n < 50 && encontrado == 0)
+				{
+					if (strcmp(partidas.partidas[miPartida].Jugadores[i].Nombre,conectados.Conectados[n].Nombre)==0) // busco al jugador en la lista de conectados
+					{
+						write (conectados.Conectados[n].socket,notificacion, strlen(notificacion));
+						printf("Notificacion %s enviada a %s\n",notificacion, conectados.Conectados[n].Nombre); // print para comprovar que se envia bien
+						encontrado = 1;
+					}
+					n ++;
+				}
+				i ++;
+			}
+		}
+	
 		if((codigo == 1)||(codigo == 2)||(codigo == 3)||(codigo == 4)||(codigo == 8))
 		{
-			printf("%s\n",respuesta);
+			printf("Respuesta enviada: %s\n",respuesta);
 			//Enviamos la respuesta
 			write (sock_conn,respuesta, strlen(respuesta));
 		}
@@ -451,8 +571,8 @@ void *AtenderCliente (void *socket)
 			int j;
 			for(j=0; j<conectados.num;j++)
 			{
-				printf("Notificacion; %s\n",notificacion);
-				printf ("%d",conectados.Conectados[j].socket);
+				printf("Notificacion: %s\n",notificacion);
+				//printf ("%d",conectados.Conectados[j].socket);
 				write (conectados.Conectados[j].socket,notificacion, strlen(notificacion));
 			}
 		}
@@ -485,14 +605,14 @@ int main (int argc, char *argv[]) {
 	//htonl formatea el numero que recibe al formato necesario
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
 	// escucharemos en el port x
-	serv_adr.sin_port = htons(9050);
+	serv_adr.sin_port = htons(9060);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf ("Error al bind");
 	//La cola de peticiones pendientes
 	if (listen(sock_listen, 3) < 0)
 		printf("Error en el Listen");
 	
-
+	partidas.num = 0;
 	pthread_t thread;
 	i=0;
 
@@ -500,7 +620,7 @@ int main (int argc, char *argv[]) {
 		printf ("Escuchando\n");
 		
 		sock_conn = accept(sock_listen, NULL, NULL);
-		printf ("He recibido conexi?n\n");
+		printf ("He recibido conexion\n");
 		//sock_conn es el socket que usaremos para este cliente
 		
 		sockets[i]= sock_conn;
