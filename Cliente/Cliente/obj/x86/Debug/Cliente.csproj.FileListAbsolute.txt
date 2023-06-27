@@ -29,3 +29,13 @@ C:\Users\David\UNI\SO_1\share\Proyecto2\ProyectoSO\Cliente\Cliente\obj\x86\Debug
 C:\Users\David\UNI\SO_1\share\Proyecto2\ProyectoSO\Cliente\Cliente\obj\x86\Debug\WindowsFormsApplication1.Form2.resources
 C:\Users\David\UNI\SO_1\share\Proyecto2\ProyectoSO\Cliente\Cliente\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
 C:\Users\David\UNI\SO_1\share\Proyecto2\ProyectoSO\Cliente\Cliente\obj\x86\Debug\Cliente.csproj.GenerateResource.Cache
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\bin\Debug\Cliente.exe.config
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\Cliente.exe
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\Cliente.pdb
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\bin\Debug\Cliente.exe
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\bin\Debug\Cliente.pdb
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\Cliente.csprojResolveAssemblyReference.cache
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\WindowsFormsApplication1.Form1.resources
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\WindowsFormsApplication1.Form2.resources
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+C:\Users\David\UNI\SO_1\share\ProyectoSO\Cliente\Cliente\obj\x86\Debug\Cliente.csproj.GenerateResource.Cache

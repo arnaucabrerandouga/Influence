@@ -28,6 +28,7 @@ typedef struct{
 typedef struct{
 	Tuser Jugadores[4];
 	int numJugadores;
+	int matriz[14][14]; //filas columans
 }Tpartida;
 
 typedef struct{
@@ -48,7 +49,7 @@ int iniciar_sesion(char* nombre, char* contrasena) { //La funcion "iniciar_sesio
 	
 	
 	conexion = mysql_init(NULL); //Se inicializa la conexion a la base de datos utilizando la funcion "mysql_init". En caso de que la conexion no se pueda establecer, se imprime un mensaje de error y se termina el programa.
-	if (mysql_real_connect(conexion, "localhost", "root", "mysql", "juego", 0, NULL, 0) == NULL) {
+	if (mysql_real_connect(conexion, "shiva2.upc.es", "root", "mysql", "MG4_juego", 0, NULL, 0) == NULL) {
 		fprintf(stderr, "%s\n", mysql_error(conexion));
 		return respuesta;
 		exit(1);
@@ -96,15 +97,13 @@ int registrarse(char* usuario, char* contrasena)
 		printf("Error al inicializar la conexiÛn a MySQL: %s\n", mysql_error(conexion));
 		return resultado; // devolver valor predeterminado de resultado (0)
 	}
-	
 	// conectar a la base de datos
-	if (mysql_real_connect(conexion, "localhost", "root", "mysql", "juego", 0, NULL, 0) == NULL)
+	if (mysql_real_connect(conexion, "shiva2.upc.es", "root", "mysql", "MG4_juego", 0, NULL, 0) == NULL)
 	{
 		printf("Error al conectar a la base de datos: %s\n", mysql_error(conexion));
 		mysql_close(conexion);
 		return resultado; // devolver valor predeterminado de resultado (0)
 	}
-	
 	// crear consulta para saber cuantos jugadores hay
 	char consulta0[200];
 	sprintf(consulta0, "SELECT COUNT(*) FROM JUGADOR");
@@ -127,8 +126,6 @@ int registrarse(char* usuario, char* contrasena)
 	int num_jugadores = atoi(fila0[0]);
 	
 	mysql_free_result(resultados0); // liberar la memoria de los resultados de la consulta1
-	
-	
 	
 	// crear consulta SQL para comprobar si el usuario ya existe en la base de datos
 	char consulta1[200];
@@ -199,7 +196,6 @@ int registrarse(char* usuario, char* contrasena)
 		// En el cÛdigo que mostraste, no hay un else despuÈs del if porque no es necesario en este caso. Si la funciÛn mysql_query() devuelve un valor diferente de 0, se asume que hubo un error al ejecutar la consulta, por lo que el cÛdigo dentro del if se ejecuta y devuelve el valor predeterminado de resultado (0).
 		// Si la funciÛn mysql_query() devuelve un valor igual a 0, se asume que la consulta se ejecutÛ correctamente, por lo que el cÛdigo dentro del if no se ejecuta y se contin˙a con el resto del cÛdigo. En este caso, no es necesario un else porque no hay ninguna acciÛn adicional que realizar si la consulta se ejecuta correctamente.
 		
-		
 		//mysql_free_result(resultados1); // liberar la memoria de los resultados de la consulta1
 		mysql_close(conexion); // cerrar la conexiÛn a la base de datos
 		
@@ -207,76 +203,346 @@ int registrarse(char* usuario, char* contrasena)
 	}
 }
 ///--------------------------------------------------------------------------------------
-int consulta_1()
+int borrarUsuario(char *usuario)
 {
 	MYSQL* conexion;
 	MYSQL_RES* resultado;
 	MYSQL_ROW fila;
 	int respuesta = -1;
 	
-	
 	conexion = mysql_init(NULL); //Se inicializa la conexion a la base de datos utilizando la funcion "mysql_init". En caso de que la conexion no se pueda establecer, se imprime un mensaje de error y se termina el programa.
-	if (mysql_real_connect(conexion, "localhost", "root", "mysql", "juego", 0, NULL, 0) == NULL) {
+	if (mysql_real_connect(conexion, "shiva2.upc.es", "root", "mysql", "MG4_juego", 0, NULL, 0) == NULL) {
 		fprintf(stderr, "%s\n", mysql_error(conexion));
 		return respuesta;
 		exit(1);
 	}
-	
-	char consulta[200];
-	sprintf(consulta, "SELECT COUNT(*) FROM JUGADOR");
-	
-	if (mysql_query(conexion, consulta)) { //Se ejecuta la consulta utilizando la funcion "mysql_query" y se verifica si hubo alg√∫n error en la ejecuci√≥n de la consulta. Si hay un error, se imprime un mensaje de error y se termina el programa.
+	//Selecciono la posicion de el jugador que voy a eliminar
+	char consulta1[200];
+	sprintf(consulta1, "SELECT ID FROM JUGADOR WHERE USERNAME='%s'", usuario);
+	if (mysql_query(conexion, consulta1)) { //Se ejecuta la consulta utilizando la funcion "mysql_query" y se verifica si hubo algun error en la ejecuci√≥n de la consulta. Si hay un error, se imprime un mensaje de error y se termina el programa.
 		fprintf(stderr, "%s\n", mysql_error(conexion));
-		return respuesta;
+		return -1;
 		exit(1);
 	}
+	MYSQL_RES* resultado1 = mysql_use_result(conexion);
+	fila = mysql_fetch_row(resultado1);
+	int IDEliminado = atoi(fila[0]);
+	mysql_free_result(resultado1);
 	
-	resultado = mysql_store_result(conexion); //Esta linea almacena los resultados de la consulta SQL en el objeto resultado.
-	fila = mysql_fetch_row(resultado); //A continuacion, se llama a la funci√≥n mysql_fetch_row() para obtener la siguiente fila de resultados. Esta funci√≥n devuelve un puntero a una estructura MYSQL_ROW que contiene los datos de una fila de resultados. Como la consulta devuelve una sola fila con un unico valor (el n√∫mero de usuarios con el nombre y contrase√±a proporcionados), no es necesario iterar sobre las filas de resultados.
-	int usuarios= atoi(fila[0]); //Entonces, como esta consulta devuelve una unica fila y una unica columna con el n√∫mero de usuarios que cumplen la condici√≥n, se obtiene el valor de esta columna usando fila[0] y se convierte a un valor entero usando atoi(). Si el valor de existe_usuario es 0, significa que no existe un usuario con el nombre y contrase√±a proporcionados. Si el valor de existe_usuario es 1, significa que s√≠ existe un usuario con el nombre y contrase√±a proporcionados. Este valor se devuelve al final de la funci√≥n iniciar_sesion().
+	//Elimino al jugador
+	char consulta2[200];
+	sprintf(consulta2, "DELETE FROM JUGADOR WHERE USERNAME='%s'", usuario);
 	
-	mysql_free_result(resultado);
-	mysql_close(conexion);
-	
-	if (respuesta != -1);
-		return usuarios;
-}
-///--------------------------------------------------------------------------------------
-int consulta_2(char *usuario)
-{
-	MYSQL* conexion;
-	MYSQL_RES* resultado;
-	MYSQL_ROW fila;
-	int respuesta = -1;
-	
-	
-	conexion = mysql_init(NULL); //Se inicializa la conexion a la base de datos utilizando la funcion "mysql_init". En caso de que la conexion no se pueda establecer, se imprime un mensaje de error y se termina el programa.
-	if (mysql_real_connect(conexion, "localhost", "root", "mysql", "juego", 0, NULL, 0) == NULL) {
+	if (mysql_query(conexion, consulta2)) { //Se ejecuta la consulta utilizando la funcion "mysql_query" y se verifica si hubo algun error en la ejecuci√≥n de la consulta. Si hay un error, se imprime un mensaje de error y se termina el programa.
 		fprintf(stderr, "%s\n", mysql_error(conexion));
-		return respuesta;
+		return -1;
 		exit(1);
 	}
-	
-	char consulta[200];
-	sprintf(consulta, "SELECT COUNT(*) FROM JUGADOR WHERE USERNAME='%s'", usuario);
-	
-	if (mysql_query(conexion, consulta)) { //Se ejecuta la consulta utilizando la funcion "mysql_query" y se verifica si hubo alg√∫n error en la ejecuci√≥n de la consulta. Si hay un error, se imprime un mensaje de error y se termina el programa.
-		fprintf(stderr, "%s\n", mysql_error(conexion));
-		return respuesta;
-		exit(1);
+	else
+	{
+		return 1;
 	}
 	
-	resultado = mysql_store_result(conexion); //Esta linea almacena los resultados de la consulta SQL en el objeto resultado.
-	fila = mysql_fetch_row(resultado); //A continuacion, se llama a la funci√≥n mysql_fetch_row() para obtener la siguiente fila de resultados. Esta funci√≥n devuelve un puntero a una estructura MYSQL_ROW que contiene los datos de una fila de resultados. Como la consulta devuelve una sola fila con un unico valor (el n√∫mero de usuarios con el nombre y contrase√±a proporcionados), no es necesario iterar sobre las filas de resultados.
-	int usuarios= atoi(fila[0]); //Entonces, como esta consulta devuelve una √∫nica fila y una √∫nica columna con el n√∫mero de usuarios que cumplen la condici√≥n, se obtiene el valor de esta columna usando fila[0] y se convierte a un valor entero usando atoi(). Si el valor de existe_usuario es 0, significa que no existe un usuario con el nombre y contrase√±a proporcionados. Si el valor de existe_usuario es 1, significa que s√≠ existe un usuario con el nombre y contrase√±a proporcionados. Este valor se devuelve al final de la funci√≥n iniciar_sesion().
-	
-	mysql_free_result(resultado);
-	mysql_close(conexion);
-	
-	if (respuesta != -1);
-	return usuarios;
-}
+	//Reorganiza la posicion de los demas jugadores
+	char consulta3[200];
+	sprintf(consulta3, "UPDATE JUGADOR SET ID = ID -1 WHERE ID > %d", IDEliminado);
+	if (mysql_query(conexion, consulta3)) { //Se ejecuta la consulta utilizando la funcion "mysql_query" y se verifica si hubo algun error en la ejecuci√≥n de la consulta. Si hay un error, se imprime un mensaje de error y se termina el programa.
+		fprintf(stderr, "%s\n", mysql_error(conexion));
+		return -1;
+		exit(1);
+	}
 
+	//mysql_free_result(resultado);
+	mysql_close(conexion);
+}
+///----------------------------------------------------------------------------------
+void notificarConectados()
+{
+	char notificacion[20];
+	sprintf(notificacion, "7/%d", conectados.num);
+	int cont7 = 0;
+	while (cont7 < conectados.num)
+	{
+		sprintf(notificacion, "%s/%s",notificacion,conectados.Conectados[cont7].Nombre);
+		cont7++;
+	}
+	int j;
+	for(j=0; j<conectados.num;j++)
+	{
+		printf("Notificacion: %s\n",notificacion);
+		write (conectados.Conectados[j].socket,notificacion, strlen(notificacion));
+	}	
+}
+///----------------------------------------------------------------------------------
+void asignarJugadores(char notificacion[20], int numPartida, int numConectados, int i)
+{
+	int cont = 0;
+	int encontrado = 0;
+	while (cont < numConectados && encontrado == 0) //conectados.num puede fallar si se desconecta una persona
+	{
+		if (strcmp(partidas.partidas[numPartida].Jugadores[i].Nombre,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
+		{
+			write (conectados.Conectados[cont].socket,notificacion, strlen(notificacion));
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[numPartida].Jugadores[i].socket = conectados.Conectados[cont].socket;
+			pthread_mutex_unlock(&mutex);
+			encontrado = 1;
+			printf("Notificacion 9 enviada a %s \n", conectados.Conectados[cont].Nombre); // print para comprovar que se envia bien
+		}
+		cont=cont+1;
+	}
+}
+///----------------------------------------------------------------------------------
+rellenarMatriz(int miPartida)
+{
+	int x, y;
+	for (x = 0; x < 14; x++) {
+		for (y = 0; y < 14; y++) {
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[partidas.num].matriz[x][y] = -1;
+			pthread_mutex_unlock(&mutex);
+		}
+	}
+}
+///----------------------------------------------------------------------------------
+pintarBotones(char notificacion[512], int xboton, int yboton, int miPartida, int numjugadorAct)
+{	
+	int numjugadorsig;
+	//botons esquerra
+	//si esta ala esquerra miras label de la dreta
+	if (xboton == 0 && partidas.partidas[miPartida].matriz[xboton+1][yboton] == -1)
+	{
+		int xlabel = xboton+1;
+		int ylabel = yboton;
+		if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+			partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+		{
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+			pthread_mutex_unlock(&mutex);
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else
+			{
+				if (numjugadorAct != partidas.partidas[miPartida].numJugadores -1)
+				{
+					numjugadorsig = numjugadorAct + 1;
+				}
+				else 
+				{
+					numjugadorsig = 0;
+				}
+				sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);		
+			}
+	}
+	//botons dreta 
+	//si esta a la dreta miras els labels de la esquerra
+	else if (xboton == 14 && partidas.partidas[miPartida].matriz[xboton-1][yboton] == -1)
+	{
+		int xlabel = xboton-1;
+		int ylabel = yboton;
+		if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+			partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+		{
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+			pthread_mutex_unlock(&mutex);
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else
+			{
+				if (numjugadorAct != partidas.partidas[miPartida].numJugadores -1)
+				{
+					numjugadorsig = numjugadorAct + 1;
+				}
+				else 
+				{
+					numjugadorsig = 0;
+				}
+				
+				sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);		
+			}
+	}
+	//boto de abaix
+	//miras el label de asobre
+	else if (yboton == 0 && partidas.partidas[miPartida].matriz[xboton][yboton+1] == -1)
+	{
+		int xlabel = xboton;
+		int ylabel = yboton+1;
+		if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+			partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+		{
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+			pthread_mutex_unlock(&mutex);
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else
+			{
+				if (numjugadorAct != partidas.partidas[miPartida].numJugadores -1) 
+				{
+					numjugadorsig = numjugadorAct + 1;
+				}
+				else 
+				{
+					numjugadorsig = 0;
+				}
+				sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);		
+			}
+	}
+	//botons de adalt
+	// miras el label de asota
+	else if (yboton == 14 && partidas.partidas[miPartida].matriz[xboton][yboton-1] == -1)
+	{
+		int xlabel = xboton;
+		int ylabel = yboton-1;
+		if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+			partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+		{
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+			pthread_mutex_unlock(&mutex);
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else
+			{
+				if (numjugadorAct != partidas.partidas[miPartida].numJugadores -1) 
+				{
+					numjugadorsig = numjugadorAct + 1;
+				}
+				else 
+				{
+					numjugadorsig = 0;
+				}
+				sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);		
+			}
+	}
+	//boto del mig horitzontal
+	//mias label de asota i asobre
+	else if (xboton % 2 == 1 && yboton % 2 == 0 )
+	{
+		int labelspintados = 0; // 0 no pinto nada // 1 pinto encima 2 pinto debajo 3 pinto los dos
+		int xlabel;
+		int ylabel;
+		int xlabel2;
+		int ylabel2;
+		
+		if (partidas.partidas[miPartida].matriz[xboton][yboton+1] == -1)
+		{	
+			xlabel = xboton;
+			ylabel = yboton+1;
+			if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+				partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+			{
+				pthread_mutex_lock(&mutex);
+				partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+				pthread_mutex_unlock(&mutex);
+				labelspintados ++;
+			}
+		}
+		if (partidas.partidas[miPartida].matriz[xboton][yboton-1] == -1)
+		{
+			xlabel2 = xboton;
+			ylabel2 = yboton-1;
+			if (partidas.partidas[miPartida].matriz[xlabel2+1][ylabel2] != -1 && partidas.partidas[miPartida].matriz[xlabel2-1][ylabel2] != -1 &&
+				partidas.partidas[miPartida].matriz[xlabel2][ylabel2+1] != -1 && partidas.partidas[miPartida].matriz[xlabel2][ylabel2-1] != -1)
+			{
+				pthread_mutex_lock(&mutex);
+				partidas.partidas[miPartida].matriz[xlabel2][ylabel2] = numjugadorAct;
+				pthread_mutex_unlock(&mutex);
+				labelspintados ++;
+				labelspintados ++;
+			}
+		}
+		if (labelspintados == 0)
+		{
+			if (partidas.partidas[miPartida].numJugadores -1 == numjugadorAct)
+			{
+				numjugadorsig = 0;
+			}
+			else
+			{
+				numjugadorsig = numjugadorAct + 1;
+			}
+			
+			sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);	
+		}
+		else if (labelspintados == 1)
+		{
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else if (labelspintados == 2)
+		{
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel2,ylabel2);
+		}
+		else if (labelspintados == 3)
+		{
+			sprintf(notificacion, "%s/%d/2/%d/%d/%d/%d",notificacion,numjugadorAct,xlabel,ylabel,xlabel2,ylabel2);
+		}	
+		
+	}
+	//boto mig vertical 
+	//miras el label de la esquerra i dreta
+	else if (xboton % 2 == 0 && yboton % 2 == 1)
+	{
+		int labelspintados = 0; // 0 no pinto nada // 1 pinto encima 2 pinto debajo 3 pinto los dos
+		int xlabel;
+		int ylabel;
+		int xlabel2;
+		int ylabel2;
+		if (partidas.partidas[miPartida].matriz[xboton+1][yboton] == -1)
+		{
+			xlabel = xboton+1;
+			ylabel = yboton;
+			if (partidas.partidas[miPartida].matriz[xlabel+1][ylabel] != -1 && partidas.partidas[miPartida].matriz[xlabel-1][ylabel] != -1 &&
+				partidas.partidas[miPartida].matriz[xlabel][ylabel+1] != -1 && partidas.partidas[miPartida].matriz[xlabel][ylabel-1] != -1)
+			{
+				pthread_mutex_lock(&mutex);
+				partidas.partidas[miPartida].matriz[xlabel][ylabel] = numjugadorAct;
+				pthread_mutex_unlock(&mutex);
+				labelspintados ++;
+			}
+		}
+		if (partidas.partidas[miPartida].matriz[xboton-1][yboton] == -1)
+		{
+			xlabel2 = xboton-1;
+			ylabel2 = yboton;
+			if (partidas.partidas[miPartida].matriz[xlabel2+1][ylabel2] != -1 && partidas.partidas[miPartida].matriz[xlabel2-1][ylabel2] != -1 &&
+				partidas.partidas[miPartida].matriz[xlabel2][ylabel2+1] != -1 && partidas.partidas[miPartida].matriz[xlabel2][ylabel2-1] != -1)
+			{
+				pthread_mutex_lock(&mutex);
+				partidas.partidas[miPartida].matriz[xlabel2][ylabel2] = numjugadorAct;
+				pthread_mutex_unlock(&mutex);
+				labelspintados ++;
+				labelspintados ++;
+			}
+		}
+		if (labelspintados == 0)
+		{
+			if (partidas.partidas[miPartida].numJugadores -1 == numjugadorAct)
+			{
+				numjugadorsig = 0;
+			}
+			else
+			{
+				numjugadorsig = numjugadorAct + 1;
+			}
+			sprintf(notificacion, "%s/%d/0",notificacion,numjugadorsig);	
+		}
+		else if (labelspintados == 1)
+		{
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel,ylabel);
+		}
+		else if (labelspintados == 2)
+		{
+			sprintf(notificacion, "%s/%d/1/%d/%d",notificacion,numjugadorAct,xlabel2,ylabel2);
+		}
+		else if (labelspintados == 3)
+		{
+			sprintf(notificacion, "%s/%d/2/%d/%d/%d/%d",notificacion,numjugadorAct,xlabel,ylabel,xlabel2,ylabel2);
+		}
+	}
+}
 ///----------------------------------------------------------------------------------
 void *AtenderCliente (void *socket)
 {
@@ -304,7 +570,7 @@ void *AtenderCliente (void *socket)
 		if (ret <= 0) {
 			// si hubo un error en la lectura, cerrar la conexion
 			close(sock_conn);
-			printf ("error al leer el mensaje");
+			printf ("error al leer el mensaje\n");
 			break;
 		}
 		printf ("Recibido\n");
@@ -333,7 +599,9 @@ void *AtenderCliente (void *socket)
 			
 			if (codigo == 1) //iniciar sesion
 			{
+				pthread_mutex_lock(&mutex);
 				int inicioSesion = iniciar_sesion(usuario,contrasenya); // funcion que devuelve 1 se todo va bien 0 si hay error 2 si el usuario y la contraseÒa no coinciden
+				pthread_mutex_unlock(&mutex);
 				if (inicioSesion == 2) // El usuario y la contraaeÒa coinciden
 					sprintf (respuesta, "1/BIEN");
 				else if (inicioSesion == 1) // El usuario y la contraseÒa no coinciden
@@ -343,7 +611,9 @@ void *AtenderCliente (void *socket)
 			}
 			else if (codigo == 2) //registrar a un usuario
 			{
+				pthread_mutex_lock(&mutex);
 				int registro = registrarse(usuario,contrasenya); // funcion que devuelve 1 se todo va bien 0 si hay error 2 si el usuario ya existe
+				pthread_mutex_unlock(&mutex);
 				if (registro == 2) // Se ha registrado
 					sprintf (respuesta, "2/BIEN");
 				else if (registro == 1) // El usuario ya existe
@@ -353,83 +623,83 @@ void *AtenderCliente (void *socket)
 			}
 		}
 		else if (codigo == 3) //consulta 1
-		{
-			printf("empezamos peticion3");
-			p = strtok (NULL, "/");
-			int numForm = atoi (p);
-			int consulta1 = consulta_1();
-			sprintf(respuesta, "3/%d/%d", numForm, consulta1);
-			printf("%d",consulta1);
-			
+		{		
 		}
-		else if (codigo == 4) //consulta 2
+		else if (codigo == 4) //Elimino cuenta, recibo 4/jugador/contra
 		{
-			p = strtok (NULL, "/");
-			int numForm = atoi (p);
 			p = strtok (NULL, "/");
 			char usuario[20];
 			strcpy (usuario, p);
-			int consulta2 = consulta_2(usuario); //devuelve 1 si el usuario existe, 0 si no existe
-			
-			if (consulta2 == 1)
-				sprintf(respuesta, "4/%d/SI", numForm);
-			if (consulta2 == 0)
-				sprintf(respuesta, "4/%d/NO", numForm);
-			
+			p = strtok (NULL, "/");
+			char contrasenya[20];
+			strcpy (contrasenya, p);
+			pthread_mutex_lock(&mutex);
+			int inicioSesion = iniciar_sesion(usuario,contrasenya); // funcion que devuelve 1 se todo va bien 0 si hay error 2 si el usuario y la contraseÒa no coinciden
+			pthread_mutex_unlock(&mutex);
+			if (inicioSesion == 2) // El usuario y la contraaeÒa coinciden
+			{
+				int funcion4 = borrarUsuario(usuario);  //devuelve 1 si el usuario existe, 0 si no existe
+				if (funcion4 == -1)
+					sprintf(respuesta, "4/ERROR", numForm);
+				if (funcion4 == 1)
+					sprintf(respuesta, "4/ELIMINADO", numForm);
+			}
+			else if (inicioSesion == 1) // El usuario y la contraseÒa no coinciden
+				sprintf(respuesta, "4/ContraseÒa incorrecta");
+			else // Hay un error
+				sprintf(respuesta, "4/ERROR");		
 		}
 		else if (codigo == 5) //un usuario se ha conectado
 		{
-			pthread_mutex_lock( &mutex );//no me interrumpas ahora
 			int cont = 0;
 			int encontrado = 0;
 			p = strtok (NULL, "/");
-			while (cont < 50 && encontrado == 0){
+			while (cont <= conectados.num && encontrado == 0){ //conectados.num puede fallar si alguien se desconecta
 				if (strlen(conectados.Conectados[cont].Nombre)==0) //busca una posicion vacia
 				{
+					pthread_mutex_lock(&mutex);
 					strcpy (conectados.Conectados[cont].Nombre, p); //aÒade una persona a la lista de conectados
 					conectados.Conectados[cont].socket = sock_conn; //asginar socket
 					conectados.num++; //aumenta en 1 el numero de personas conectadas
+					pthread_mutex_unlock(&mutex);
 					encontrado = 1;
 					printf("%s se ha conectado\n", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
 				}
 				cont=cont+1;
 			}
-			pthread_mutex_unlock( &mutex );//ya puedes interrumpirme
+			notificarConectados();//cada vez que alguein se conecta o desconecta se encio un /7 para notificar a todos
 		}
 		else if (codigo == 6) //un usuario se ha desconectado
 		{
-			pthread_mutex_lock( &mutex );//no me interrumpas ahora
 			int cont = 0;
 			int encontrado = 0;
 			p = strtok (NULL, "/");
-			while (cont < 50 && encontrado == 0){
+			while (cont <= conectados.num && encontrado == 0){
 				if (strcmp(p,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
 				{
+					pthread_mutex_lock(&mutex);
 					conectados.Conectados[cont].Nombre[0] = '\0';  //elimino al jugador de la lista de conectados
 					conectados.Conectados[cont].socket = 0;  //elimino al socket de este jugador
 					conectados.num--; //reduzco en 1 el numero de personas conectadas
+					pthread_mutex_unlock(&mutex);
 					encontrado = 1;
 					printf("%s se ha desconectado\n", conectados.Conectados[cont].Nombre); // print para comprar quien se ha conectado
-					
 				}
 				cont=cont+1;
-				
 			}
-			pthread_mutex_unlock( &mutex );//ya puedes interrumpirme
+			notificarConectados();//cada vez que alguein se conecta o desconecta se encio un /7 para notificar a todos
 		}
-		else if (codigo == 8)
+		else if (codigo == 8) //busco si un jugador est conectado, recibo 8/nombre
 		{
 			int cont = 0;
 			int encontrado = 0;
 			p = strtok (NULL, "/");
 			while (cont < conectados.num && encontrado == 0){
 				if (strcmp(p,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
-				{
-					// si lo encuenor envio mensa si no tambiwn
+				{ // si lo encuenor envio mensa si no tambien
 					encontrado = 1;
 				}
 				cont=cont+1;
-				
 			}
 			if (encontrado == 1)
 			{
@@ -443,42 +713,36 @@ void *AtenderCliente (void *socket)
 		else if (codigo == 9) //mensaje para invitar a jugar a otros jugadores
 		{
 			//recivo mensaje 9/anfitrion/num otros jugadores/jugador1/jugador2/jugador3
-			//de la manera que esta echo petara a las 50 partidas pero demomento solo puede con 1 partida
+			//de la manera que esta echo petara a las 50 partidas
 			char notificacion[20];
 			p = strtok (NULL, "/");
+			pthread_mutex_lock(&mutex);
 			strcpy(partidas.partidas[partidas.num].Jugadores[0].Nombre,p); //el anfitrion siempre estara en la posicion 0
+			partidas.partidas[partidas.num].Jugadores[0].socket = sock_conn;
 			p = strtok (NULL, "/");
 			partidas.partidas[partidas.num].numJugadores = atoi (p);
 			partidas.partidas[partidas.num].numJugadores ++;
+			pthread_mutex_unlock(&mutex);
 			sprintf(notificacion, "9/%d", partidas.num);
+						
 			int i = 1;
 			while (i < partidas.partidas[partidas.num].numJugadores)
 			{
 				p = strtok (NULL, "/");
-				strcpy(partidas.partidas[partidas.num].Jugadores[i].Nombre,p);	
-				int cont = 0;
-				int encontrado = 0;
-				while (cont < 50 && encontrado == 0)
-				{
-					if (strcmp(partidas.partidas[partidas.num].Jugadores[i].Nombre,conectados.Conectados[cont].Nombre)==0) // busco al jugador en la lista de conectados
-					{
-						//podria aprovechar y asginarle aqui el socket al jugador para ahorrarme trabajo mas adelante
-						write (conectados.Conectados[cont].socket,notificacion, strlen(notificacion));
-						//strcpy(partidas.partidas[partidas.num].Jugadores[i].socket, conectados.Conectados[cont].socket);
-						encontrado = 1;
-						printf("Notificacion 9 enviada a %s\n", conectados.Conectados[cont].Nombre); // print para comprovar que se envia bien
-					}
-					cont=cont+1;
-				}
+				pthread_mutex_lock(&mutex);
+				strcpy(partidas.partidas[partidas.num].Jugadores[i].Nombre,p);
+				pthread_mutex_unlock(&mutex);
+				asignarJugadores(notificacion, partidas.num, conectados.num, i);
 				i ++;
 			}
+			rellenarMatriz(partidas.num);
 			partidas.num ++;
 		}
 		else if (codigo == 10) //recivo un mensaje 10/partidas.num/SI o 10/partidas.num/NO de todos los jugadores invitados
 		{
 			// tengo una variable mensajes recividos que aumenta cuando recivo un mensaje
 			// una variable mensajes si recividos que aumenta cuando recibo un si
-			// si cuando recibo todos los mensajes que devo todos son si envio notificacion si
+			// si cuando recibo todos los mensajes que devo y todos son si envio notificacion si
 			// si hay algun no enviare un no
 			char notificacion[20];
 			mensajes10Recividos ++;
@@ -487,7 +751,7 @@ void *AtenderCliente (void *socket)
 			p = strtok (NULL, "/");
 			char respuesta10[2];
 			strcpy(respuesta10, p);
-			printf("%s\n", respuesta10);
+			//printf("%s\n", respuesta10);
 			if (strcmp(respuesta10, "SI")==0)
 			{
 				mensajes10SI ++;
@@ -498,30 +762,18 @@ void *AtenderCliente (void *socket)
 					sprintf(notificacion, "10/%d/SI", miPartida);
 				else
 					sprintf(notificacion, "10/%d/NO", miPartida);
+				mensajes10Recividos = 0;
 				int i = 0;
-				while (i < mensajes10Recividos + 1)
+				while (i < partidas.partidas[miPartida].numJugadores)
 				{
-					//write (partidas.partidas[partidas.num].Jugadores[i].socket,notificacion, strlen(notificacion));
-					//printf("Notificacion %s enviada a %s\n",notificacion, partidas.partidas[partidas.num].Jugadores[i].Nombre);
-					int n = 0;
-					int encontrado = 0;
-					while (n < 50 && encontrado == 0)
-					{
-						if (strcmp(partidas.partidas[miPartida].Jugadores[i].Nombre,conectados.Conectados[n].Nombre)==0) // busco al jugador en la lista de conectados
-						{
-							write (conectados.Conectados[n].socket,notificacion, strlen(notificacion));
-							printf("Notificacion %s enviada a %s\n",notificacion, conectados.Conectados[n].Nombre); // print para comprovar que se envia bien
-							encontrado = 1;
-						}
-						n ++;
-					}
+					write (partidas.partidas[miPartida].Jugadores[i].socket,notificacion, strlen(notificacion));
+					printf("Notificacion %s enviada a %s con socket %d \n",notificacion, partidas.partidas[miPartida].Jugadores[i].Nombre, partidas.partidas[miPartida].Jugadores[i].socket);
 					i ++;
 				}
-			}		
+			}
 		}
 		else if (codigo == 11) //chat: recibo mensaje 11/numPartida/Jugador que escrive/mensaje
 		{
-			printf("empieza 11\n");
 			char notificacion[512];
 			p = strtok (NULL, "/");
 			int miPartida = atoi (p);
@@ -533,48 +785,74 @@ void *AtenderCliente (void *socket)
 			int i = 0;
 			while (i < partidas.partidas[miPartida].numJugadores)
 			{
-				int n = 0;
-				int encontrado = 0;
-				while (n < 50 && encontrado == 0)
-				{
-					if (strcmp(partidas.partidas[miPartida].Jugadores[i].Nombre,conectados.Conectados[n].Nombre)==0) // busco al jugador en la lista de conectados
-					{
-						write (conectados.Conectados[n].socket,notificacion, strlen(notificacion));
-						printf("Notificacion %s enviada a %s\n",notificacion, conectados.Conectados[n].Nombre); // print para comprovar que se envia bien
-						encontrado = 1;
-					}
-					n ++;
-				}
+				write (partidas.partidas[miPartida].Jugadores[i].socket,notificacion, strlen(notificacion));
+				printf("Notificacion %s enviada a %s\n",notificacion, partidas.partidas[miPartida].Jugadores[i].Nombre);
 				i ++;
 			}
 		}
+		else if (codigo == 12) //Pasa informacion de una partida, recibe 12/numpartida/jugador
+		{
+			p = strtok (NULL, "/");
+			int miPartida = atoi (p);
+			p = strtok (NULL, "/");
+			int encontrado = 0;
+			int n = 0; //n sera mi posicion de jugador en mi partida
+			while (n < partidas.partidas[miPartida].numJugadores && encontrado == 0) //busco valor de n
+			{
+				if (strcmp (partidas.partidas[miPartida].Jugadores[n].Nombre, p)==0)
+				{
+					encontrado = 1;
+				}
+				n++;
+			}
+			n--;
+			sprintf(respuesta, "12/%d/%d/%d", miPartida, partidas.partidas[miPartida].numJugadores, n);
+			int i = 0;
+			while (i < partidas.partidas[miPartida].numJugadores)
+			{
+				sprintf(respuesta, "%s/%s", respuesta, partidas.partidas[miPartida].Jugadores[i].Nombre);
+				i++;
+			}
+		}
+		else if (codigo == 13) // Recibe: 13/numPartida/numJugador/BotoX/BotoY
+		// Envia 13/numPartida/jugadorAnt/xboton/yboton/jugadirSig/numlabels/xlabel/ylabel/xlabel2/ylabel2
+		{
+			char notificacion[512];
+			p = strtok (NULL, "/");
+			int miPartida = atoi (p);
+			int numjugadorAct; //jugador que acaba de tirar
+			p = strtok (NULL, "/");
+			numjugadorAct = atoi(p);
+			p = strtok (NULL, "/");
+			int xboton = atoi (p);
+			p = strtok (NULL, "/");
+			int yboton = atoi (p);
+			pthread_mutex_lock(&mutex);
+			partidas.partidas[miPartida].matriz[xboton][yboton] = numjugadorAct;
+			pthread_mutex_unlock(&mutex);
+			sprintf(notificacion, "13/%d/%d/%d/%d",miPartida,numjugadorAct,xboton,yboton);
+			pintarBotones(notificacion, xboton, yboton, miPartida, numjugadorAct);
+
+			int i = 0;
+			while (i < partidas.partidas[miPartida].numJugadores)
+			{
+				write (partidas.partidas[miPartida].Jugadores[i].socket, notificacion, strlen(notificacion));
+				printf("Notificacion %s enviada a %s\n",notificacion, partidas.partidas[miPartida].Jugadores[i].Nombre);
+				i ++;
+			}	
+		}
 	
-		if((codigo == 1)||(codigo == 2)||(codigo == 3)||(codigo == 4)||(codigo == 8))
+		if((codigo == 1)||(codigo == 2)||(codigo == 3)||(codigo == 4)||(codigo == 8)||(codigo == 12))
 		{
 			printf("Respuesta enviada: %s\n",respuesta);
 			//Enviamos la respuesta
 			write (sock_conn,respuesta, strlen(respuesta));
 		}
 		
-		if((codigo == 5)||(codigo == 6))
+		if((codigo == 5)||(codigo == 6)) //cada vez que alguein se conecta o desconecta se encio un /7 para notificar a todos
 		{
-
 			// notificar a todos los clientes conectados
-			char notificacion[20];
-			sprintf(notificacion, "7/%d", conectados.num);
-			int cont7 = 0;
-			while (cont7 < conectados.num)
-			{
-				sprintf(notificacion, "%s/%s",notificacion,conectados.Conectados[cont7].Nombre);
-				cont7++;
-			}
-			int j;
-			for(j=0; j<conectados.num;j++)
-			{
-				printf("Notificacion: %s\n",notificacion);
-				//printf ("%d",conectados.Conectados[j].socket);
-				write (conectados.Conectados[j].socket,notificacion, strlen(notificacion));
-			}
+			
 		}
 	}
 	// Se acabo el servicio para este cliente
@@ -605,7 +883,7 @@ int main (int argc, char *argv[]) {
 	//htonl formatea el numero que recibe al formato necesario
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
 	// escucharemos en el port x
-	serv_adr.sin_port = htons(9060);
+	serv_adr.sin_port = htons(50009);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf ("Error al bind");
 	//La cola de peticiones pendientes
@@ -629,28 +907,3 @@ int main (int argc, char *argv[]) {
 	
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
