@@ -1,4 +1,2 @@
 # Influence
-
-- version 2.1 iniciar sesion y registrar "funcionan"
-- v2
+ link video presentacion YT: https://www.youtube.com/watch?v=Fs0bcoSo2E8
